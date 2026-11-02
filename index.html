@@ -168,11 +168,13 @@ function tab(reg) {
   $("#f-login").hidden = reg; $("#f-reg").hidden = !reg;
   $("#t-login").setAttribute("aria-selected", !reg); $("#t-reg").setAttribute("aria-selected", reg); msg("");
 }
+// czyści tylko lokalną kopię sesji (bez wywołania serwera – signOut unieważniłby tokeny przekazywane do panelu)
+function wipe() { for (const st of [localStorage, sessionStorage]) Object.keys(st).filter(k => k.startsWith("sb-")).forEach(k => st.removeItem(k)); }
 async function go(s) {
   $("#boot").hidden = true; $("#go").classList.add("on");
   const url = APP_URL + (HANDOFF && s ? "#access_token=" + encodeURIComponent(s.access_token) + "&refresh_token=" + encodeURIComponent(s.refresh_token) : "");
   // tokeny przechodzą do panelu – tu kasujemy lokalną kopię (inaczej dwa serwisy współdzielą jeden refresh token i wylogowują się nawzajem)
-  if (HANDOFF) { try { await sb.auth.signOut({ scope: "local" }); } catch {} }
+  if (HANDOFF) wipe();
   setTimeout(() => location.replace(url), 350);
 }
 function err(e) {
@@ -254,7 +256,7 @@ sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") show("newpass"
   const rq = new URLSearchParams(location.search).get("r");
   if (rq) {
     history.replaceState(null, "", location.pathname + location.hash);
-    try { await sb.auth.signOut({ scope: "local" }); } catch {}
+    wipe();
     show("auth");
     return rq === "exp" ? msg("Sesja wygasła. Zaloguj się ponownie.") : undefined;
   }
